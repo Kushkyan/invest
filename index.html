@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Portfolio Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root{
+            --bg:#0a0e13;
+            --panel:#0d1117;
+            --panel-secondary:#161b22;
+            --border:rgba(48,54,61,0.6);
+            --border-hover:rgba(48,54,61,0.9);
+            --text:#e6edf3;
+            --text-secondary:#8b949e;
+            --muted:#6e7681;
+            --accent:#58a6ff;
+            --positive:#3fb950;
+            --negative:#f85149;
+            --warning:#d29922;
+            --info:#58a6ff;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Top header bar */
+        .header-bar {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+        .header-bar h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+        .header-stats {
+            display: flex;
+            gap: 24px;
+            font-size: 12px;
+        }
+        .header-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .header-stat-label {
+            color: var(--muted);
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.05em;
+        }
+        .header-stat-value {
+            font-weight: 600;
+            font-size: 14px;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: var(--bg);
+            padding: 16px 20px;
+            position: relative;
+        }
+
+        h2 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 0 0 12px 0;
+        }
+
+        /* Dashboard Cards - Financial style */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .card {
+            background: var(--panel);
+            padding: 14px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .card h3 {
+            font-size: 11px;
+            color: var(--muted);
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 500;
+        }
+
+        .card .value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+        
+        .card .change {
+            font-size: 12px;
+            margin-top: 6px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .card.positive .value { color: var(--positive); }
+        .card.negative .value { color: var(--negative); }
+
+        /* Form Section */
+        .form-section {
+            background: var(--panel);
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 4px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--panel-secondary);
+            color: var(--text);
+            font-size: 13px;
+            transition: all 0.15s ease;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--panel);
+            box-shadow: 0 0 0 3px rgba(88,166,255,0.1);
+        }
+
+        .form-group input::placeholder {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .form-group select option { background: var(--panel); color: var(--text); }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 7px 14px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--panel-secondary);
+            color: var(--text);
+        }
+        
+        button:hover {
+            background: var(--panel);
+            border-color: var(--border-hover);
+        }
+
+        .btn-primary { 
+            background: var(--accent); 
+            color: #fff; 
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover { 
+            background: #4493f8;
+            border-color: #4493f8;
+        }
+
+        .btn-success { 
+            background: var(--positive); 
+            color: #fff;
+            border-color: var(--positive);
+        }
+
+        .btn-success:hover { 
+            background: #46b955;
+            border-color: #46b955;
+        }
+
+        .btn-danger { 
+            background: var(--negative); 
+            color: #fff;
+            border-color: var(--negative);
+        }
+
+        .btn-danger:hover { 
+            background: #f97066;
+            border-color: #f97066;
+        }
+
+        .btn-secondary { 
+            background: transparent; 
+            color: var(--text-secondary); 
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { 
+            background: var(--panel-secondary);
+            color: var(--text);
+        }
+
+        /* Table Section - Financial terminal style */
+        .table-section { 
+            background: var(--panel); 
+            padding: 0; 
+            border-radius: 6px; 
+            margin-bottom: 16px; 
+            overflow: auto; 
+            border: 1px solid var(--border);
+        }
+        
+        .table-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--panel);
+            z-index: 11;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead { 
+            background: var(--panel-secondary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        th:first-child { padding-left: 16px; }
+        th:last-child { padding-right: 16px; }
+
+        td { 
+            padding: 10px 12px; 
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        td:first-child { padding-left: 16px; }
+        td:last-child { padding-right: 16px; }
+
+        tbody tr:hover { background: var(--panel-secondary); }
+        tbody tr:last-child td { border-bottom: none; }
+
+        .profit { color: var(--positive); font-weight: 600; }
+        .loss { color: var(--negative); font-weight: 600; }
+        
+        .ticker-cell {
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .action-btn { 
+            padding: 4px 8px; 
+            font-size: 11px; 
+            margin: 0 2px;
+        }
+        
+        /* Charts Section */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .chart-container { 
+            background: var(--panel); 
+            padding: 16px; 
+            border-radius: 6px; 
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            aspect-ratio: 9 / 10; /* slightly taller than square to show bottom labels */
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-container h3 {
+            margin: 0 0 12px 0;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        /* Empty State */
+        .empty-state { text-align: center; padding: 40px 10px; color: var(--muted); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* charts removed */
+
+            table { font-size: 0.9rem; }
+            th, td { padding: 10px 8px; }
+        }
+
+        /* Mobile table -> cards */
+        @media (max-width: 720px){
+            thead { display: none; }
+            table, tbody, tr, td { display: block; width: 100%; }
+            tr { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; background: #0b1220; overflow: hidden; }
+            td { border: none; border-bottom: 1px solid rgba(255,255,255,0.06); display: grid; grid-template-columns: 120px 1fr; gap: 8px; padding: 10px 12px; }
+            td:last-child { border-bottom: none; }
+            td::before { content: attr(data-label); color: var(--muted); font-size: 0.8rem; }
+            .action-btn { padding: 8px 10px; }
+        }
+
+        /* Floating Add Button (mobile) */
+        .fab{
+            position: fixed;
+            right: 18px;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: #fff; border: none;
+            font-size: 28px; line-height: 0;
+            display: none; align-items: center; justify-content: center;
+            box-shadow: 0 10px 25px rgba(59,130,246,0.35);
+            cursor: pointer;
+            z-index: 50;
+        }
+        @media (max-width: 900px){ .fab{ display: inline-flex; } }
+
+        /* Minimal: no extra animations */
+    </style>
+</head>
+<body>
+    <!-- Top Header Bar -->
+    <div class="header-bar">
+        <h1>💼 Portfolio Tracker</h1>
+        <div class="header-stats">
+            <div class="header-stat">
+                <span class="header-stat-label">Portfolio Value</span>
+                <span class="header-stat-value" id="headerValue">$0.00</span>
+            </div>
+            <div class="header-stat">
+                <span class="header-stat-label">24h Change</span>
+                <span class="header-stat-value" id="headerChange">+$0.00</span>
+            </div>
+            <div class="header-stat">
+                <span class="header-stat-label">Total Return</span>
+                <span class="header-stat-value" id="headerReturn">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Dashboard Cards -->
+        <div class="dashboard">
+            <div class="card">
+                <h3>Общая сумма инвестиций</h3>
+                <div class="value" id="totalInvested">$0.00</div>
+            </div>
+            <div class="card">
+                <h3>Текущая стоимость</h3>
+                <div class="value" id="currentValue">$0.00</div>
+            </div>
+            <div class="card" id="profitCard">
+                <h3>Прибыль / Убыток</h3>
+                <div class="value" id="totalProfit">$0.00</div>
+            </div>
+            <div class="card">
+                <h3>ROI</h3>
+                <div class="value" id="roi">0%</div>
+            </div>
+        </div>
+
+        <!-- Add Investment Form -->
+        <div class="form-section" id="addForm">
+            <h2>Добавить актив</h2>
+            <form id="investmentForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Тикер (точный, A–Z 0–9 . - =) *</label>
+                        <input type="text" id="assetName" placeholder="Например: AAPL, BRK-B, 700.HK, BTC или BTC-USD" required pattern="[A-Z0-9.\-=]+" title="Только символы A–Z, 0–9, точка, дефис, равно; без пробелов. Для криптовалют можно указывать только символ (BTC=BTC-USD)">
+                    </div>
+                    <div class="form-group">
+                        <label>Тип актива *</label>
+                        <select id="assetType" required>
+                            <option value="">Выберите тип</option>
+                            <option value="Акции">Акции</option>
+                            <option value="Облигации">Облигации</option>
+                            <option value="Криптовалюта">Криптовалюта</option>
+                            <option value="ETF">ETF</option>
+                            <option value="Недвижимость">Недвижимость</option>
+                            <option value="Драгоценные металлы">Драгоценные металлы</option>
+                            <option value="Другое">Другое</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Количество *</label>
+                        <input type="number" id="quantity" step="0.0001" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Цена покупки ($) *</label>
+                        <input type="number" id="buyPrice" step="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Текущая цена ($) *</label>
+                        <input type="number" id="currentPrice" step="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Дата покупки *</label>
+                        <input type="date" id="buyDate" required>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn-primary">Добавить</button>
+                    <button type="button" class="btn-secondary" onclick="clearForm()">Очистить</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Investments Table -->
+        <div class="table-section">
+            <div class="table-header">
+                <h2>Holdings</h2>
+                <div class="btn-group">
+                    <button class="btn-secondary" onclick="configureApiKeys()">Настройки</button>
+                    <button class="btn-primary" onclick="updatePricesFromMarkets()">Обновить цены</button>
+                    <button class="btn-success" onclick="exportToCSV()">Export CSV</button>
+                    <button class="btn-secondary" onclick="exportToJSON()">Save</button>
+                    <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Load</button>
+                    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importFromJSON(event)">
+                    <button class="btn-danger" onclick="clearAllData()">Clear</button>
+                </div>
+            </div>
+            <div id="tableContainer">
+                <div class="empty-state">
+                    <h3>Нет данных</h3>
+                    <p>Добавьте первый актив, чтобы начать учёт</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-section">
+            <div class="chart-container">
+                <h3>Кривая стоимости и просадка</h3>
+                <canvas id="equityChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Распределение по типам</h3>
+                <canvas id="allocationChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>P/L по активам</h3>
+                <canvas id="plChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Инвестировано vs Текущая (по типам)</h3>
+                <canvas id="typeCompareChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Floating Add Button (mobile) -->
+    <button class="fab" aria-label="Добавить" onclick="document.getElementById('addForm').scrollIntoView({behavior:'smooth'});">+</button>
+
+    <script>
+
+    // Utility: Format currency with thousands separator
+    function formatCurrency(value) {
+        return value.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // Portfolio history (for equity curve)
+    let portfolioHistory = [];
+
+    function loadHistory(){
+        const saved = localStorage.getItem('portfolioHistory');
+        if(saved){
+            try { portfolioHistory = JSON.parse(saved); }
+            catch { portfolioHistory = []; }
+        }
+    }
+
+    function saveHistory(){
+        try { localStorage.setItem('portfolioHistory', JSON.stringify(portfolioHistory)); } catch {}
+    }
+
+    function computeTotals(){
+        let totalInvested = 0, currentValue = 0;
+        investments.forEach(inv => {
+            totalInvested += inv.quantity * inv.buyPrice;
+            currentValue += inv.quantity * inv.currentPrice;
+        });
+        return { totalInvested, currentValue };
+    }
+
+    function recordSnapshot(){
+        const { totalInvested, currentValue } = computeTotals();
+        const day = new Date().toISOString().slice(0,10);
+        const last = portfolioHistory[portfolioHistory.length-1];
+        if(!last || last.date !== day){
+            portfolioHistory.push({ date: day, invested: totalInvested, value: currentValue });
+            // keep last 365 entries
+            if(portfolioHistory.length > 365) portfolioHistory = portfolioHistory.slice(-365);
+            saveHistory();
+        } else {
+            // update today's value
+            last.invested = totalInvested; last.value = currentValue; saveHistory();
+        }
+    }
+
+    function updateCharts(){
+        // EQUITY + DRAWDOWN
+        const labels = portfolioHistory.map(p => p.date);
+        const values = portfolioHistory.map(p => p.value);
+        // compute drawdown in %
+        let peak = 0; const drawdowns = values.map(v => { peak = Math.max(peak, v); return peak ? ((v/peak)-1)*100 : 0; });
+
+        const equityCtx = document.getElementById('equityChart').getContext('2d');
+        if (equityChart) equityChart.destroy();
+        equityChart = new Chart(equityCtx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Value $',
+                        data: values,
+                        borderColor: '#58a6ff',
+                        backgroundColor: 'rgba(88,166,255,0.15)',
+                        tension: 0.25,
+                        borderWidth: 2,
+                        fill: false,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: 'Drawdown %',
+                        data: drawdowns,
+                        borderColor: 'rgba(248,81,73,0.9)',
+                        backgroundColor: 'rgba(248,81,73,0.15)',
+                        tension: 0.25,
+                        borderWidth: 1,
+                        fill: true,
+                        yAxisID: 'y2'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                layout: { padding: { top: 6, right: 4, bottom: 16, left: 4 } },
+                scales: {
+                    y1: {
+                        position: 'left',
+                        ticks: { color: '#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US') },
+                        grid: { color: 'rgba(148,163,184,0.15)' }
+                    },
+                    y2: {
+                        position: 'right',
+                        ticks: { color: '#cbd5e1', callback: v => v + '%' },
+                        grid: { display: false },
+                        suggestedMin: -100, suggestedMax: 0
+                    },
+                    x: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(148,163,184,0.08)' } }
+                },
+                plugins: { legend: { labels: { color: '#cbd5e1' } } }
+            }
+        });
+
+        // ALLOCATION BY TYPE (DONUT)
+        const typeGroups = {};
+        investments.forEach(inv => { const val = inv.quantity * inv.currentPrice; typeGroups[inv.type] = (typeGroups[inv.type]||0)+val; });
+        const allocCtx = document.getElementById('allocationChart').getContext('2d');
+        if (allocationChart) allocationChart.destroy();
+        allocationChart = new Chart(allocCtx, {
+            type: 'doughnut',
+            data: { labels: Object.keys(typeGroups), datasets: [{ data: Object.values(typeGroups), backgroundColor: ['#58a6ff','#8b949e','#3fb950','#d29922','#f85149','#06b6d4','#a78bfa','#94a3b8'], borderWidth: 0 }] },
+            options: { maintainAspectRatio: false, layout: { padding: { top: 6, right: 4, bottom: 16, left: 4 } }, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1' } } } }
+        });
+
+        // P/L BY ASSET (HORIZONTAL)
+        const plData = investments.map(inv => { const invested = inv.quantity * inv.buyPrice; const current = inv.quantity * inv.currentPrice; return { name: inv.name, pl: current - invested }; }).sort((a,b)=>a.pl-b.pl);
+        const plCtx = document.getElementById('plChart').getContext('2d');
+        if (plChart) plChart.destroy();
+        plChart = new Chart(plCtx, {
+            type: 'bar',
+            data: { labels: plData.map(d=>d.name), datasets: [{ label: 'P/L $', data: plData.map(d=>d.pl), backgroundColor: plData.map(d=> d.pl>=0 ? 'rgba(63,185,80,0.9)' : 'rgba(248,81,73,0.9)') }] },
+            options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { top: 6, right: 4, bottom: 16, left: 4 } }, plugins: { legend: { labels: { color: '#cbd5e1' } } }, scales: { x: { ticks: { color: '#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US') }, grid:{ color: 'rgba(148,163,184,0.15)' } }, y: { ticks:{ color: '#cbd5e1' }, grid:{ color:'rgba(148,163,184,0.08)'} } } }
+        });
+
+        // INVESTED vs CURRENT BY TYPE (STACKED)
+        const agg = {};
+        investments.forEach(inv=>{ const invested = inv.quantity*inv.buyPrice; const current = inv.quantity*inv.currentPrice; if(!agg[inv.type]) agg[inv.type] = { invested: 0, current: 0 }; agg[inv.type].invested += invested; agg[inv.type].current += current; });
+        const labelsType = Object.keys(agg);
+        const investedArr = labelsType.map(k=>agg[k].invested);
+        const currentArr = labelsType.map(k=>agg[k].current);
+        const typeCtx = document.getElementById('typeCompareChart').getContext('2d');
+        if (typeCompareChart) typeCompareChart.destroy();
+        typeCompareChart = new Chart(typeCtx, {
+            type: 'bar',
+            data: { labels: labelsType, datasets: [ { label: 'Инвестировано', data: investedArr, backgroundColor: 'rgba(148,163,184,0.9)' }, { label: 'Текущая', data: currentArr, backgroundColor: 'rgba(88,166,255,0.9)' } ] },
+            options: { plugins: { legend: { labels: { color: '#cbd5e1' } } }, responsive: true, maintainAspectRatio: false, layout: { padding: { top: 6, right: 4, bottom: 16, left: 4 } }, scales: { x: { stacked: true, ticks:{ color:'#cbd5e1' }, grid:{ color:'rgba(148,163,184,0.08)' } }, y: { stacked: true, ticks:{ color:'#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US') }, grid:{ color:'rgba(148,163,184,0.15)' } } } }
+        });
+    }
+
+    // Fetch current prices from public APIs using exact tickers
+    async function fetchCoinbaseSpot(pair){
+        // pair example: BTC-USD, ETH-EUR
+        const url = `https://api.coinbase.com/v2/prices/${encodeURIComponent(pair)}/spot`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if(!res.ok) throw new Error(`Coinbase ${pair} ${res.status}`);
+        const json = await res.json();
+        const amt = json && json.data && json.data.amount ? Number(json.data.amount) : NaN;
+        if(Number.isNaN(amt)) throw new Error('Invalid price');
+        return amt;
+    }
+
+    async function fetchAlphaVantagePrice(symbol){
+        const apiKey = localStorage.getItem('ALPHAVANTAGE_API_KEY');
+        if(!apiKey) throw new Error('NO_ALPHA_KEY');
+        const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(apiKey)}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if(!res.ok) throw new Error(`AlphaVantage ${symbol} ${res.status}`);
+        const json = await res.json();
+        const quote = json && (json['Global Quote'] || json['global quote']);
+        const priceStr = quote && (quote['05. price'] || quote['05. Price']);
+        const price = priceStr ? Number(priceStr) : NaN;
+        if(Number.isNaN(price)) throw new Error('Invalid price');
+        return price;
+    }
+
+    const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+    function getAlphaKey(){
+        return localStorage.getItem('ALPHAVANTAGE_API_KEY') || '';
+    }
+    function setAlphaKey(key){
+        if(key && key.trim()){
+            localStorage.setItem('ALPHAVANTAGE_API_KEY', key.trim());
+            return true;
+        }
+        return false;
+    }
+    function clearAlphaKey(){ localStorage.removeItem('ALPHAVANTAGE_API_KEY'); }
+
+    function configureApiKeys(){
+        const current = getAlphaKey();
+        const input = prompt('Введите Alpha Vantage API Key (оставьте пустым чтобы очистить):', current);
+        if(input === null) return; // cancelled
+        if(input.trim() === '') { clearAlphaKey(); alert('Ключ удалён. Акции/ETF не будут обновляться.'); return; }
+        if(setAlphaKey(input)){
+            alert('Ключ сохранён. Теперь можно обновить цены (акции/ETF).');
+        }
+    }
+
+    async function updatePricesFromMarkets(opts = {}){
+        const silent = !!opts.silent;
+        const btn = !silent ? document.querySelector('.table-header .btn-group .btn-primary') : null;
+        const original = btn ? btn.textContent : '';
+        if(btn) btn.textContent = 'Обновляю…';
+
+        let updated = 0, failed = 0;
+
+        // Build list with unique tickers by type
+        // Crypto: allow either full pair (BTC-USD) or single token (BTC -> BTC-USD)
+        const cryptoNames = Array.from(new Set(investments.filter(i => i.type === 'Криптовалюта').map(i => i.name)));
+        const defaultQuote = (localStorage.getItem('CRYPTO_DEFAULT_QUOTE') || 'USD').toUpperCase();
+        const pairByName = {};
+        cryptoNames.forEach(name => {
+            const trimmed = (name || '').toUpperCase().trim();
+            if (/^[A-Z0-9]+-[A-Z]{3,5}$/.test(trimmed)) {
+                pairByName[name] = trimmed;
+            } else if (/^[A-Z0-9]{2,15}$/.test(trimmed)) {
+                pairByName[name] = `${trimmed}-${defaultQuote}`;
+            } else {
+                pairByName[name] = null; // invalid format
+            }
+        });
+        const equitySymbols = Array.from(new Set(investments.filter(i => i.type !== 'Криптовалюта').map(i => i.name)));
+
+        // Update crypto first
+        for(const name of cryptoNames){
+            try {
+                const pair = pairByName[name];
+                if(!pair || !/^[A-Z0-9]+-[A-Z]{3,5}$/.test(pair)) { failed++; continue; }
+                const price = await fetchCoinbaseSpot(pair);
+                if(Number.isFinite(price)) {
+                    investments.forEach(inv => { if(inv.type === 'Криптовалюта' && inv.name === name) inv.currentPrice = price; });
+                    updated++;
+                }
+            } catch (e){ failed++; }
+        }
+
+        // Update stocks/ETF/others via Alpha Vantage if key is present
+    const hasAlpha = !!getAlphaKey();
+        if(hasAlpha){
+            for(const sym of equitySymbols){
+                try {
+                    if(!/^[A-Z0-9.\-=]{1,15}$/.test(sym)) { failed++; continue; }
+                    const price = await fetchAlphaVantagePrice(sym);
+                    if(Number.isFinite(price)) {
+                        investments.forEach(inv => { if(inv.name === sym) inv.currentPrice = price; });
+                        updated++;
+                    }
+                    // throttle to respect free tier
+                    await delay(1500);
+                } catch (e){ failed++; }
+            }
+        }
+
+        saveData();
+        recordSnapshot();
+        renderTable();
+        updateDashboard();
+        updateCharts();
+
+        if(btn) {
+            if(updated === 0){
+                // Provide hints
+                if(equitySymbols.length > 0 && !hasAlpha){
+                    btn.textContent = 'Нужен API ключ для акций';
+                } else if(cryptoNames.length > 0){
+                    btn.textContent = 'Крипто: можно вводить BTC (USD по умолчанию)';
+                } else {
+                    btn.textContent = 'Нет подходящих тикеров';
+                }
+            } else {
+                btn.textContent = `Обновлено: ${updated}`;
+            }
+            setTimeout(()=>{ btn.textContent = original || 'Обновить цены'; }, 2000);
+        }
+    }
+
+    // Data Storage
+    let investments = [];
+    let editingId = null; // current editing investment id or null
+    
+    // Chart instances
+    let equityChart = null;
+    let allocationChart = null;
+    let plChart = null;
+    let typeCompareChart = null;
+
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('investments');
+            if (saved) {
+                try {
+                    investments = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Error loading data:', e);
+                }
+            }
+            loadHistory();
+            renderTable();
+            updateDashboard();
+            recordSnapshot();
+            updateCharts();
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            try {
+                localStorage.setItem('investments', JSON.stringify(investments));
+            } catch (e) {
+                alert('Ошибка сохранения данных: ' + e.message);
+            }
+        }
+        // Initialize date field
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('buyDate');
+            dateInput.value = new Date().toISOString().split('T')[0];
+
+            // Enforce uppercase and allowed characters for ticker (A–Z 0–9 . - =)
+            const tickerInput = document.getElementById('assetName');
+            tickerInput.addEventListener('input', () => {
+                tickerInput.value = tickerInput.value
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9.\-=]/g, '');
+            });
+
+            loadData();
+            // First background price sync (silent)
+            updatePricesFromMarkets({ silent: true }).catch(()=>{});
+            // Auto-refresh every 5 minutes
+            window.__priceTimer = setInterval(() => {
+                updatePricesFromMarkets({ silent: true }).catch(()=>{});
+            }, 5 * 60 * 1000);
+        });
+
+        // Form submission
+        document.getElementById('investmentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const investment = {
+                name: document.getElementById('assetName').value.trim(),
+                type: document.getElementById('assetType').value,
+                quantity: parseFloat(document.getElementById('quantity').value),
+                buyPrice: parseFloat(document.getElementById('buyPrice').value),
+                currentPrice: parseFloat(document.getElementById('currentPrice').value),
+                buyDate: document.getElementById('buyDate').value,
+                addedDate: new Date().toISOString()
+            };
+
+            if (editingId !== null) {
+                // Update existing investment
+                const idx = investments.findIndex(i => i.id === editingId);
+                if (idx !== -1) {
+                    investments[idx] = { ...investments[idx], ...investment, id: editingId };
+                }
+            } else {
+                // Add new investment
+                investment.id = Date.now();
+                investments.push(investment);
+            }
+            saveData();
+            recordSnapshot();
+            renderTable();
+            updateDashboard();
+            updateCharts();
+            clearForm();
+
+            // Success feedback
+            const btn = document.querySelector('.btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = (editingId === null ? 'Добавлено' : 'Сохранено');
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+
+            // Reset editing state
+            editingId = null;
+            document.querySelector('.btn-primary').textContent = 'Добавить';
+        });
+
+        // Clear form
+        function clearForm() {
+            document.getElementById('investmentForm').reset();
+            document.getElementById('buyDate').value = new Date().toISOString().split('T')[0];
+            editingId = null;
+            const btn = document.querySelector('.btn-primary');
+            if (btn) btn.textContent = 'Добавить';
+        }
+
+        // Render table
+        function renderTable() {
+            const container = document.getElementById('tableContainer');
+
+            if (investments.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Нет данных</h3>
+                        <p>Добавьте первый актив, чтобы начать учёт</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Тикер</th>
+                            <th>Тип</th>
+                            <th>Количество</th>
+                            <th>Цена покупки</th>
+                            <th>Текущая цена</th>
+                            <th>Инвестировано</th>
+                            <th>Стоимость</th>
+                            <th>Прибыль/Убыток</th>
+                            <th>ROI</th>
+                            <th>Дата</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            investments.forEach(inv => {
+                const invested = inv.quantity * inv.buyPrice;
+                const currentVal = inv.quantity * inv.currentPrice;
+                const profitLoss = currentVal - invested;
+                const roi = ((profitLoss / invested) * 100).toFixed(2);
+                const profitClass = profitLoss >= 0 ? 'profit' : 'loss';
+                const sign = profitLoss >= 0 ? '+' : '';
+
+                html += `
+                    <tr>
+                        <td data-label="Тикер" class="ticker-cell"><strong>${inv.name}</strong></td>
+                        <td data-label="Тип">${inv.type}</td>
+                        <td data-label="Количество">${inv.quantity.toLocaleString()}</td>
+                        <td data-label="Цена покупки">$${formatCurrency(inv.buyPrice)}</td>
+                        <td data-label="Текущая цена">$${formatCurrency(inv.currentPrice)}</td>
+                        <td data-label="Инвестировано">$${formatCurrency(invested)}</td>
+                        <td data-label="Стоимость">$${formatCurrency(currentVal)}</td>
+                        <td data-label="Прибыль/Убыток" class="${profitClass}">${sign}$${formatCurrency(Math.abs(profitLoss))}</td>
+                        <td data-label="ROI" class="${profitClass}">${sign}${roi}%</td>
+                        <td data-label="Дата">${new Date(inv.buyDate).toLocaleDateString()}</td>
+                        <td data-label="Действия">
+                            <button class="btn-secondary action-btn" onclick="editInvestment(${inv.id})">Изм.</button>
+                            <button class="btn-danger action-btn" onclick="deleteInvestment(${inv.id})">Удал.</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Update dashboard
+        function updateDashboard() {
+            let totalInvested = 0;
+            let currentValue = 0;
+
+            investments.forEach(inv => {
+                totalInvested += inv.quantity * inv.buyPrice;
+                currentValue += inv.quantity * inv.currentPrice;
+            });
+
+            const totalProfit = currentValue - totalInvested;
+            const roiPercent = totalInvested > 0 ? ((totalProfit / totalInvested) * 100).toFixed(2) : 0;
+
+            document.getElementById('totalInvested').textContent = `$${formatCurrency(totalInvested)}`;
+            document.getElementById('currentValue').textContent = `$${formatCurrency(currentValue)}`;
+            document.getElementById('totalProfit').textContent = `${totalProfit >= 0 ? '+' : ''}$${formatCurrency(Math.abs(totalProfit))}`;
+            document.getElementById('roi').textContent = `${totalProfit >= 0 ? '+' : ''}${roiPercent}%`;
+
+            // Update header bar stats
+            document.getElementById('headerValue').textContent = `$${formatCurrency(currentValue)}`;
+            document.getElementById('headerChange').textContent = `${totalProfit >= 0 ? '+' : ''}$${formatCurrency(Math.abs(totalProfit))}`;
+            document.getElementById('headerReturn').textContent = `${totalProfit >= 0 ? '+' : ''}${roiPercent}%`;
+            document.getElementById('headerChange').style.color = totalProfit >= 0 ? 'var(--positive)' : 'var(--negative)';
+            document.getElementById('headerReturn').style.color = totalProfit >= 0 ? 'var(--positive)' : 'var(--negative)';
+
+            const profitCard = document.getElementById('profitCard');
+            if (totalProfit >= 0) {
+                profitCard.classList.add('positive');
+                profitCard.classList.remove('negative');
+            } else {
+                profitCard.classList.add('negative');
+                profitCard.classList.remove('positive');
+            }
+        }
+
+    // Charts removed
+
+        // Edit investment
+        function editInvestment(id) {
+            const inv = investments.find(i => i.id === id);
+            if (!inv) return;
+
+            document.getElementById('assetName').value = inv.name;
+            document.getElementById('assetType').value = inv.type;
+            document.getElementById('quantity').value = inv.quantity;
+            document.getElementById('buyPrice').value = inv.buyPrice;
+            document.getElementById('currentPrice').value = inv.currentPrice;
+            document.getElementById('buyDate').value = inv.buyDate;
+            
+            // Enter edit mode (do NOT delete immediately)
+            editingId = id;
+            const btn = document.querySelector('.btn-primary');
+            if (btn) btn.textContent = 'Сохранить';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Delete investment
+        function deleteInvestment(id) {
+            if (confirm('Удалить этот актив?')) {
+                investments = investments.filter(i => i.id !== id);
+                saveData();
+                recordSnapshot();
+                renderTable();
+                updateDashboard();
+                updateCharts();
+            }
+        }
+
+        // Clear all data
+        function clearAllData() {
+            if (confirm('Вы уверены? Все данные будут удалены!')) {
+                if (confirm('Это действие нельзя отменить. Продолжить?')) {
+                    investments = [];
+                    portfolioHistory = [];
+                    saveData();
+                    saveHistory();
+                    renderTable();
+                    updateDashboard();
+                    if (equityChart) { equityChart.destroy(); equityChart = null; }
+                    if (allocationChart) { allocationChart.destroy(); allocationChart = null; }
+                    if (plChart) { plChart.destroy(); plChart = null; }
+                    if (typeCompareChart) { typeCompareChart.destroy(); typeCompareChart = null; }
+                }
+            }
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            if (investments.length === 0) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            let csv = 'Тикер,Тип,Количество,Цена покупки,Текущая цена,Инвестировано,Стоимость,Прибыль/Убыток,ROI%,Дата покупки\n';
+            
+            investments.forEach(inv => {
+                const invested = inv.quantity * inv.buyPrice;
+                const currentVal = inv.quantity * inv.currentPrice;
+                const profitLoss = currentVal - invested;
+                const roi = ((profitLoss / invested) * 100).toFixed(2);
+
+                csv += `"${inv.name}","${inv.type}",${inv.quantity},${inv.buyPrice},${inv.currentPrice},${invested.toFixed(2)},${currentVal.toFixed(2)},${profitLoss.toFixed(2)},${roi},"${inv.buyDate}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `portfolio_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        // Export to JSON
+        function exportToJSON() {
+            if (investments.length === 0) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify(investments, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `portfolio_backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        // Import from JSON
+        function importFromJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (Array.isArray(data)) {
+                        if (confirm(`Загрузить ${data.length} активов? Текущие данные будут заменены.`)) {
+                            investments = data;
+                            saveData();
+                            recordSnapshot();
+                            renderTable();
+                            updateDashboard();
+                            updateCharts();
+                            alert('Данные успешно загружены!');
+                        }
+                    } else {
+                        alert('Неверный формат файла');
+                    }
+                } catch (err) {
+                    alert('Ошибка чтения файла: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input
+        }
+    </script>
+</body>
+</html>
