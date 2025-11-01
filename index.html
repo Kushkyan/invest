@@ -540,6 +540,7 @@
                 <div class="btn-group">
                     <button class="btn-secondary" onclick="configureApiKeys()">Настройки</button>
                     <button class="btn-primary" onclick="updatePricesFromMarkets()">Обновить цены</button>
+                    <button class="btn-secondary" onclick="cloudMenu()">Облако</button>
                     <button class="btn-success" onclick="exportToCSV()">Export CSV</button>
                     <button class="btn-secondary" onclick="exportToJSON()">Save</button>
                     <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Load</button>
@@ -849,6 +850,107 @@
                 btn.textContent = `Обновлено: ${updated}`;
             }
             setTimeout(()=>{ btn.textContent = original || 'Обновить цены'; }, 2000);
+        }
+    }
+
+    // --- Cloud sync via GitHub Gist ---
+    function getGistToken(){ return localStorage.getItem('GIST_TOKEN') || ''; }
+    function setGistToken(t){ if(t && t.trim()){ localStorage.setItem('GIST_TOKEN', t.trim()); return true; } return false; }
+    function clearGistToken(){ localStorage.removeItem('GIST_TOKEN'); }
+    function getGistId(){ return localStorage.getItem('GIST_ID') || ''; }
+    function setGistId(id){ if(id && id.trim()){ localStorage.setItem('GIST_ID', id.trim()); return true; } return false; }
+    function clearGistId(){ localStorage.removeItem('GIST_ID'); }
+
+    function cloudMenu(){
+        const choice = prompt(
+            'Облако (GitHub Gist):\n'+
+            '1 — Задать/изменить токен\n'+
+            '2 — Сохранить в облако\n'+
+            '3 — Загрузить из облака\n'+
+            '4 — Сбросить настройки',
+            '2'
+        );
+        if(choice === null) return;
+        if(choice === '1') return configureGistToken();
+        if(choice === '2') return saveToCloud();
+        if(choice === '3') return loadFromCloud();
+        if(choice === '4') { clearGistToken(); clearGistId(); alert('Сброшено.'); return; }
+        alert('Неизвестная команда');
+    }
+
+    function configureGistToken(){
+        alert('Нужен GitHub Personal Access Token с правом "gist". Рекомендуется Fine-grained token только с доступом к gist.');
+        const current = getGistToken();
+        const input = prompt('Вставьте GitHub Token (gist scope). Пусто = удалить:', current);
+        if(input === null) return;
+        if(!input.trim()){ clearGistToken(); alert('Токен удалён'); return; }
+        if(setGistToken(input)) alert('Токен сохранён.');
+    }
+
+    function buildCloudPayload(){
+        return JSON.stringify({
+            version: 1,
+            updatedAt: new Date().toISOString(),
+            investments,
+            portfolioHistory
+        }, null, 2);
+    }
+
+    async function saveToCloud(){
+        const token = getGistToken();
+        if(!token){ alert('Сначала задайте токен (Облако → 1).'); return; }
+        const gistId = getGistId();
+        const body = { files: { 'portfolio.json': { content: buildCloudPayload() } }, description: 'Portfolio Tracker data', public: false };
+        const headers = { 'Accept': 'application/vnd.github+json', 'Authorization': `token ${token}` };
+        try{
+            let res;
+            if(gistId){
+                res = await fetch(`https://api.github.com/gists/${encodeURIComponent(gistId)}`, { method: 'PATCH', headers, body: JSON.stringify({ files: body.files }) });
+            } else {
+                res = await fetch('https://api.github.com/gists', { method: 'POST', headers, body: JSON.stringify(body) });
+            }
+            if(!res.ok) throw new Error(`${res.status}`);
+            const json = await res.json();
+            if(json && json.id) setGistId(json.id);
+            alert('Сохранено в облако');
+        } catch(e){
+            alert('Ошибка сохранения в облако: ' + e.message);
+        }
+    }
+
+    async function loadFromCloud(){
+        const token = getGistToken();
+        if(!token){ alert('Сначала задайте токен (Облако → 1).'); return; }
+        let gistId = getGistId();
+        if(!gistId){
+            gistId = prompt('Введите ID Gist (если уже создавали). Иначе отмените и сначала сохраните в облако.','');
+            if(gistId) setGistId(gistId);
+        }
+        if(!gistId) return;
+        try{
+            const headers = { 'Accept': 'application/vnd.github+json', 'Authorization': `token ${token}` };
+            const res = await fetch(`https://api.github.com/gists/${encodeURIComponent(gistId)}`, { headers });
+            if(!res.ok) throw new Error(`${res.status}`);
+            const gist = await res.json();
+            const file = gist && gist.files && (gist.files['portfolio.json'] || Object.values(gist.files)[0]);
+            if(!file) throw new Error('Файл portfolio.json не найден');
+            const rawRes = await fetch(file.raw_url);
+            const text = await rawRes.text();
+            const data = JSON.parse(text);
+            if(Array.isArray(data)){
+                investments = data; // legacy support
+            } else {
+                if(Array.isArray(data.investments)) investments = data.investments;
+                if(Array.isArray(data.portfolioHistory)) portfolioHistory = data.portfolioHistory;
+            }
+            saveData();
+            saveHistory();
+            renderTable();
+            updateDashboard();
+            updateCharts();
+            alert('Загружено из облака');
+        } catch(e){
+            alert('Ошибка загрузки из облака: ' + e.message);
         }
     }
 
