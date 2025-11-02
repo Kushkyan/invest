@@ -409,10 +409,10 @@
                 grid-template-columns: 1fr;
             }
 
-            /* Charts: 1 column and taller cards on mobile */
-            .charts-section { grid-template-columns: 1fr; gap: 12px; }
-            .chart-container { aspect-ratio: auto; min-height: 320px; padding: 12px; }
-            .chart-container h3 { font-size: 11px; margin-bottom: 8px; }
+            /* Charts: 1 column and compact height on mobile */
+            .charts-section { grid-template-columns: 1fr; gap: 10px; }
+            .chart-container { aspect-ratio: auto; height: 240px; padding: 8px; }
+            .chart-container h3 { font-size: 10px; margin-bottom: 6px; }
 
             table { font-size: 0.9rem; }
             th, td { padding: 10px 8px; }
@@ -638,7 +638,7 @@
     }
 
     function updateCharts(){
-        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
         // EQUITY + DRAWDOWN
         const labels = portfolioHistory.map(p => p.date);
         const values = portfolioHistory.map(p => p.value);
@@ -678,22 +678,22 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { intersect: false, mode: 'index' },
-                layout: { padding: { top: 6, right: 4, bottom: 16, left: 4 } },
+                layout: { padding: { top: 4, right: 4, bottom: 12, left: 4 } },
                 scales: {
                     y1: {
                         position: 'left',
-                        ticks: { color: '#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US'), font: { size: isMobile ? 10 : 12 } },
+                        ticks: { color: '#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US'), font: { size: isMobile ? 9 : 12 } },
                         grid: { color: 'rgba(148,163,184,0.15)' }
                     },
                     y2: {
                         position: 'right',
-                        ticks: { color: '#cbd5e1', callback: v => v + '%', font: { size: isMobile ? 10 : 12 } },
+                        ticks: { color: '#cbd5e1', callback: v => v + '%', font: { size: isMobile ? 9 : 12 } },
                         grid: { display: false },
                         suggestedMin: -100, suggestedMax: 0
                     },
-                    x: { ticks: { color: '#cbd5e1', font: { size: isMobile ? 10 : 12 }, maxTicksLimit: isMobile ? 5 : 10 }, grid: { color: 'rgba(148,163,184,0.08)' } }
+                    x: { ticks: { color: '#cbd5e1', font: { size: isMobile ? 9 : 12 }, maxTicksLimit: isMobile ? 4 : 10 }, grid: { color: 'rgba(148,163,184,0.08)' } }
                 },
-                plugins: { legend: { display: !isMobile, labels: { color: '#cbd5e1', font: { size: isMobile ? 10 : 12 } } } }
+                plugins: { legend: { display: !isMobile, labels: { color: '#cbd5e1', font: { size: isMobile ? 9 : 12 } } } }
             }
         });
 
@@ -705,7 +705,7 @@
         allocationChart = new Chart(allocCtx, {
             type: 'doughnut',
             data: { labels: Object.keys(typeGroups), datasets: [{ data: Object.values(typeGroups), backgroundColor: ['#58a6ff','#8b949e','#3fb950','#d29922','#f85149','#06b6d4','#a78bfa','#94a3b8'], borderWidth: 0 }] },
-            options: { maintainAspectRatio: false, layout: { padding: { top: 6, right: 4, bottom: 16, left: 4 } }, plugins: { legend: { display: !isMobile, position: 'bottom', labels: { color: '#cbd5e1', font: { size: isMobile ? 10 : 12 } } } } }
+            options: { maintainAspectRatio: false, layout: { padding: { top: 4, right: 4, bottom: 12, left: 4 } }, plugins: { legend: { display: !isMobile, position: 'bottom', labels: { color: '#cbd5e1', font: { size: isMobile ? 9 : 12 } } } } }
         });
 
         // P/L BY ASSET (HORIZONTAL)
@@ -715,7 +715,7 @@
         plChart = new Chart(plCtx, {
             type: 'bar',
             data: { labels: plData.map(d=>d.name), datasets: [{ label: 'P/L $', data: plData.map(d=>d.pl), backgroundColor: plData.map(d=> d.pl>=0 ? 'rgba(63,185,80,0.9)' : 'rgba(248,81,73,0.9)') }] },
-            options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { top: 6, right: 4, bottom: 16, left: 4 } }, plugins: { legend: { display: !isMobile, labels: { color: '#cbd5e1', font: { size: isMobile ? 10 : 12 } } } }, scales: { x: { ticks: { color: '#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US'), font: { size: isMobile ? 10 : 12 } }, grid:{ color: 'rgba(148,163,184,0.15)' } }, y: { ticks:{ color: '#cbd5e1', font: { size: isMobile ? 10 : 12 } }, grid:{ color:'rgba(148,163,184,0.08)'} } } }
+            options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { top: 4, right: 4, bottom: 12, left: 4 } }, plugins: { legend: { display: !isMobile, labels: { color: '#cbd5e1', font: { size: isMobile ? 9 : 12 } } } }, scales: { x: { ticks: { color: '#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US'), font: { size: isMobile ? 9 : 12 } }, grid:{ color: 'rgba(148,163,184,0.15)' } }, y: { ticks:{ color: '#cbd5e1', font: { size: isMobile ? 9 : 12 } }, grid:{ color:'rgba(148,163,184,0.08)'} } } }
         });
 
         // INVESTED vs CURRENT BY TYPE (STACKED)
@@ -729,7 +729,7 @@
         typeCompareChart = new Chart(typeCtx, {
             type: 'bar',
             data: { labels: labelsType, datasets: [ { label: 'Инвестировано', data: investedArr, backgroundColor: 'rgba(148,163,184,0.9)' }, { label: 'Текущая', data: currentArr, backgroundColor: 'rgba(88,166,255,0.9)' } ] },
-            options: { plugins: { legend: { display: !isMobile, labels: { color: '#cbd5e1', font: { size: isMobile ? 10 : 12 } } } }, responsive: true, maintainAspectRatio: false, layout: { padding: { top: 6, right: 4, bottom: 16, left: 4 } }, scales: { x: { stacked: true, ticks:{ color:'#cbd5e1', font: { size: isMobile ? 10 : 12 } }, grid:{ color:'rgba(148,163,184,0.08)' } }, y: { stacked: true, ticks:{ color:'#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US'), font: { size: isMobile ? 10 : 12 } }, grid:{ color:'rgba(148,163,184,0.15)' } } } }
+            options: { plugins: { legend: { display: !isMobile, labels: { color: '#cbd5e1', font: { size: isMobile ? 9 : 12 } } } }, responsive: true, maintainAspectRatio: false, layout: { padding: { top: 4, right: 4, bottom: 12, left: 4 } }, scales: { x: { stacked: true, ticks:{ color:'#cbd5e1', font: { size: isMobile ? 9 : 12 } }, grid:{ color:'rgba(148,163,184,0.08)' } }, y: { stacked: true, ticks:{ color:'#cbd5e1', callback: v => '$' + Number(v).toLocaleString('en-US'), font: { size: isMobile ? 9 : 12 } }, grid:{ color:'rgba(148,163,184,0.15)' } } } }
         });
     }
 
